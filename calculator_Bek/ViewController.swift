@@ -1,196 +1,195 @@
-//
-//  ViewController.swift
-//  calculator_Bek
-//
-//  Created by Berkay YAY on 28.09.2022.
-//
-
 import UIKit
 
 class ViewController: UIViewController {
     
+    var didOperandButtonTapped = false
+    var operand: String = ""
+    var result: Double = .zero {
+        didSet {
+            displayLabel.text = "\(result)"
+        }
+    }
     
-    @IBOutlet private weak var calculatorLabel: UILabel!
+    var numbers = [Double]() {
+        didSet {
+            print(numbers)
+        }
+    }
     
-    @IBOutlet private weak var resultLabel: UILabel!
+    var displayValue: String? {
+        get {
+            displayLabel.text
+        }
+        set {
+            guard let newValue = newValue else {
+                return
+            }
+            if displayLabel.text == "0" {
+                displayLabel.text! = newValue
+            } else {
+                displayLabel.text! += newValue
+            }
+        }
+    }
     
-    var sum = ""
-    var numbers: String = ""
-    var operation: String = ""
-    var equalTapped = false
-    var count = 0
-    
-    
-    
+    @IBOutlet private weak var displayLabel: UILabel!
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        clearAll()
     }
     
-    func clearAll(){
-        number1 = ""
-        numbers = ""
-        calculatorLabel.text = ""
-        resultLabel.text = ""
-        newOperation = true
-        operation = ""
-        count = 0
-        sum = ""
-    }
-    
-    func doCalculations(number1: String, number2: String, operation: String) -> Double{
-        guard let num1 = Double(number1),
-              let num2 = Double(number2) else{
-            return .zero
+    @IBAction private func didTapDigitButton(_ sender: UIButton) {
+        if didOperandButtonTapped {
+            displayLabel.text = "0"
+            didOperandButtonTapped = false
         }
-        switch operation{
-        case "*":
-            return Double(num1) * Double(num2)
-        case "/":
-            return Double(num1) / Double(num2)
-        case "+":
-            return Double(num1) + Double(num2)
-        case "-":
-            return Double(num1) - Double(num2)
-        default:
-            return .zero
-        }
-    }
-    
-    var newOperation = true
-    var number1: String?
-    func addToScreen(val: String){
-        guard calculatorLabel.text != nil else {
+        guard let currentTitle = sender.currentTitle else {
             return
         }
-        if newOperation && count == 1{
-            number1 = numbers
-            numbers = ""
-            newOperation = false
-                        
+        displayValue = currentTitle
+    }
+    
+    @IBAction private func didTapOperandButton(_ sender: UIButton) {
+        didOperandButtonTapped = true
+        
+        guard let currentTitle = sender.currentTitle else {
+            return
         }
-        else if newOperation && count == 2{
-            guard let num1 = number1 else{
+        
+        switch currentTitle {
+        case "*":
+            operand = currentTitle
+            doCalculations(numbers: numbers, operand: operand)
+        case "/":
+            operand = currentTitle
+            doCalculations(numbers: numbers, operand: operand)
+        case "-":
+            operand = currentTitle
+            doCalculations(numbers: numbers, operand: operand)
+        case "+":
+            operand = currentTitle
+            doCalculations(numbers: numbers, operand: operand)
+        case "=":
+            guard let displayValueInDouble = Double(displayValue ?? "0") else {
                 return
             }
-            number1 = "\(doCalculations(number1: num1, number2: numbers, operation: operation))"
-            numbers = ""
-            newOperation = false
-            count = 1
-        }
-        numbers += val
-        calculatorLabel.text = numbers
-        
-        
-        
-    }
-    
-    @IBAction func clearButtonTapped(_ sender: UIButton) {
-        clearAll()
-    }
-    
-    
-    @IBAction func deleteButtonTapped(_ sender: UIButton) {
-        if !numbers.isEmpty{
-            numbers.removeLast()
-            calculatorLabel.text = numbers
-        }
-    }
-    
-    @IBAction func numericButtonTapped(_ sender: UIButton) {
-        guard let text = sender.currentTitle,
-              calculatorLabel.text != nil else{
-            return
-        }
-        if equalTapped{
-            calculatorLabel.text = ""
-            addToScreen(val: text)
-            equalTapped = false
-        }else{
-            addToScreen(val: text)
-        }
-        
-    }
-    
-  
-    
-    @IBAction func equalButtonTapped(_ sender: UIButton){
-        equalTapped = true
-        guard let num1 = Double(number1 ?? "0"),
-              let num2 = Double(numbers) else{
-            return
-        }
-        switch operation{
-        case "*":
-            let result = num1 * num2
-            number1 = "\(result)"
-            resultLabel.text = "\(result)"
-        case "/":
-            let result = num1 / num2
-            number1 = "\(result)"
-            resultLabel.text = "\(result)"
-        case "+":
-            let result = num1 + num2
-            number1 = "\(result)"
-            resultLabel.text = "\(result)"
-        case "-":
-            let result = num1 - num2
-            number1 = "\(result)"
-            resultLabel.text = "\(result)"
-        
+            numbers.append(displayValueInDouble)
             
+            if numbers.count > 1 {
+                
+                guard let secondNumber = numbers.popLast(),
+                      let firstNumber = numbers.popLast() else {
+                    return
+                }
+                
+                
+                let result = equalButtonTapped(number1: firstNumber, number2: secondNumber, operand: operand)
+                self.result = result
+            }
         default:
-            let alert = UIAlertController(
-                title: "Invalid Input",
-                message: "Calculator unable to do math based on input",
-                preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .default))
-            self.present(alert, animated: true, completion: nil)
+            break
         }
     }
     
-    @IBAction func operandButtonTapped(_ sender: UIButton){
-        guard let op = sender.currentTitle  else {
+    @IBAction private func didSquareButtonTapped(_ sender: UIButton){
+        guard let number = Double(displayLabel.text ?? "0") else {
             return
         }
+        let result = mult(firstNumber: number, secondNumber: number)
+        self.result = result
+    }
+    
+    @IBAction private func didSquareRootButtonTapped(_ sender: UIButton){
+        guard let number = Double(displayLabel.text ?? "0") else {
+            return
+        }
+        let result = sqrt(number)
+        self.result = result
+    }
+    
+    @IBAction private func didPowerMinusOneTapped(_ sender: UIButton){
+        guard let number = Double(displayLabel.text ?? "0") else {
+            return
+        }
+        let result = 1 / number
+        self.result = result
+    }
+    
+    @IBAction private func didTapClearButton(_ sender: UIButton) {
+        displayLabel.text = ""
+    }
+    
+    @IBAction private func didDeleteButtonTapped(_ sender: UIButton){
+        guard var number = displayLabel.text else {
+            return
+        }
+        number.removeLast()
+        displayLabel.text = number
+    }
+    
+    func equalButtonTapped(number1: Double, number2: Double, operand: String) -> Double{
         
-        switch sender.currentTitle{
+        switch operand{
         case "*":
-            operation = op
-            calculatorLabel.text = op
-            newOperation = true
-            count+=1
+            return number1 * number2
         case "/":
-            operation = op
-            calculatorLabel.text = op
-            newOperation = true
-            count+=1
-        case "-":
-            operation = op
-            calculatorLabel.text = op
-            newOperation = true
-            count+=1
+            return number1 / number2
         case "+":
-            operation = op
-            calculatorLabel.text = op
-            newOperation = true
-            count+=1
+            return number1 + number2
+        case "-":
+            return number1 - number2
         default:
-            let alert = UIAlertController(
-                title: "Invalid Input",
-                message: "Calculator unable to do math based on input",
-                preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Okay", style: .default))
-            self.present(alert, animated: true, completion: nil)
+            return .zero
         }
     }
     
+    func doCalculations(numbers: [Double], operand: String) -> Void{
+        if numbers.count > 1 {
+            
+            guard let firstNumber = self.numbers.popLast(),
+                  let secondNumber = self.numbers.popLast() else {
+                return
+            }
+            switch operand {
+            case "+":
+                let result = sum(firstNumber: firstNumber,
+                                 secondNumber: secondNumber)
+                self.result = result
+            case "-":
+                let result = subt(firstNumber: firstNumber,
+                                  secondNumber: secondNumber)
+                self.result = result
+            case "*":
+                let result = mult(firstNumber: firstNumber,
+                                  secondNumber: secondNumber)
+                self.result = result
+            case "/":
+                let result = div(firstNumber: firstNumber,
+                                 secondNumber: secondNumber)
+                self.result = result
+            default:
+                print("Error")
+            }
+            
+        } else {
+            guard let displayValueInDouble = Double(displayValue ?? "0") else {
+                return
+            }
+            self.numbers.append(displayValueInDouble)
+        }
+    }
     
-    
-    
-    func add<T: Numeric>(firstNumber: T, secondNumber: T) -> T {
+    func sum<T: Numeric>(firstNumber: T, secondNumber: T) -> T {
         firstNumber + secondNumber
+    }
+    func subt(firstNumber: Double, secondNumber: Double) -> Double {
+        firstNumber - secondNumber
+    }
+    func mult<T: Numeric>(firstNumber: T, secondNumber: T) -> T {
+        firstNumber * secondNumber
+    }
+    func div(firstNumber: Double, secondNumber: Double) -> Double {
+        return firstNumber / secondNumber
     }
 }
 
